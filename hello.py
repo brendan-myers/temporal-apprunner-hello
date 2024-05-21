@@ -39,8 +39,12 @@ class GreetingWorkflow:
 async def main():
     target_host = os.environ.get("HOST")
     namespace = os.environ.get("NAMESPACE")
-    client_key = bytes(os.environ.get("CLIENT_KEY"), "utf-8")
-    client_cert = bytes(os.environ.get("CLIENT_CERT"), "utf-8")
+    client_key = os.environ.get("CLIENT_KEY").replace("<NL>","""
+""")
+    client_cert = os.environ.get("CLIENT_CERT").replace("<NL>","""
+""")
+    client_key = bytes(client_key, "utf-8")
+    client_cert = bytes(client_cert, "utf-8")
 
     # Start client with TLS configured
     client = await Client.connect(
