@@ -1,15 +1,13 @@
-import argparse
 import asyncio
 import concurrent.futures
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Optional
-
 import os
-
 from temporalio import activity, workflow
 from temporalio.client import Client, TLSConfig
 from temporalio.worker import Worker
+from threading import Thread
+from wsgiref.simple_server import make_server
 
 
 @dataclass
@@ -35,8 +33,7 @@ class GreetingWorkflow:
             start_to_close_timeout=timedelta(seconds=10),
         )
 
-
-async def main():
+async def run_worker():
     target_host = os.environ.get("HOST")
     namespace = os.environ.get("NAMESPACE")
     client_key = os.environ.get("CLIENT_KEY").replace("<NL>","""
@@ -65,8 +62,26 @@ async def main():
             activity_executor=activity_executor,
             max_concurrent_activities=100,
         )
+
+        print("Worker starting...")
+
         await worker.run()
 
 
+def simple_app(environ, start_response):
+    status = '200 OK'
+    headers = [('Content-type', 'text/plain; charset=utf-8')]
+
+    start_response(status, headers)
+
+    return ["Running...\n".encode("utf-8")]
+
+def run_server():
+    with make_server('', 8000, simple_app) as httpd:
+        print("Serving on port 8000...")
+        httpd.serve_forever()
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    Thread(target = run_server).start()
+    asyncio.run(run_worker())
